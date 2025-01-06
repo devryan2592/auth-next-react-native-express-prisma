@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; }
+    .header { text-align: center; padding: 20px; }
+    .content { line-height: 1.6; color: #333; }
+    .button { display: inline-block; padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px; }
+    .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome to Invoice App!</h1>
+    </div>
+    <div class="content">
+      <p>Hello {{name}},</p>
+      <p>Thank you for joining Invoice App! We're excited to have you on board.</p>
+      <p>With Invoice App, you can:</p>
+      <ul>
+        <li>Create and manage professional invoices</li>
+        <li>Track payments</li>
+        <li>Manage customers</li>
+        <li>Generate reports</li>
+      </ul>
+      <p>You're all set to start using Invoice App! Click the button below to log in to your account:</p>
+      <p style="text-align: center;">
+        <a href="{{loginLink}}" class="button">Log In Now</a>
+      </p>
+      <p>If you have any questions, feel free to reach out to our support team.</p>
+      <p>Best regards,<br>The Invoice App Team</p>
+    </div>
+    <div class="footer">
+      <p>This is a welcome email for your verified Invoice App account.</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,16 +1,10 @@
 import { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import { z } from 'zod';
 import { AppError } from '@/helpers/error';
-import { logger } from '@utils/logger';
+import { logger } from '@/utils/logger';
+import { HTTP_STATUS } from '@/constants';
 
-// HTTP Status codes
-const HTTP_STATUS = {
-  BAD_REQUEST: 400,
-  UNAUTHORIZED: 401,
-  FORBIDDEN: 403,
-  NOT_FOUND: 404,
-  INTERNAL_SERVER_ERROR: 500,
-} as const;
+
 
 interface ValidationError {
   path: string;
@@ -18,14 +12,26 @@ interface ValidationError {
 }
 
 const handleZodError = (res: Response, error: z.ZodError) => {
-  const errors: ValidationError[] = error.errors.map((err) => ({
-    path: err.path.join('.'),
-    message: err.message,
+  // Create a map to store first error for each path
+  const errorMap = new Map<string, string>();
+  
+  // Only keep first error for each path
+  error.errors.forEach((err) => {
+    const path = err.path.join('.');
+    if (!errorMap.has(path)) {
+      errorMap.set(path, err.message);
+    }
+  });
+
+  // Convert map to array of validation errors
+  const errors: ValidationError[] = Array.from(errorMap.entries()).map(([path, message]) => ({
+    path,
+    message,
   }));
 
   return res.status(HTTP_STATUS.BAD_REQUEST).json({
     status: 'error',
-    message: 'Validation failed',
+    message: 'Validation failed', 
     errors,
   });
 };

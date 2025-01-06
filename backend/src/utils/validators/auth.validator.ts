@@ -21,28 +21,73 @@ export const registerSchema = z.object({
     
     confirmPassword: z
       .string({ required_error: 'Password confirmation is required' }),
-    
-    name: z
-      .string({ required_error: 'Name is required' })
-      .min(2, 'Name must be at least 2 characters')
-      .max(100, 'Name must be less than 100 characters')
-      .trim()
-      .regex(
-        /^[a-zA-Z\s]+$/,
-        'Name can only contain letters and spaces'
-      ),
   }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ['confirmPassword'],
   }),
 });
 
-export type RegisterInput = z.infer<typeof registerSchema>['body'];
+export const verifyEmailSchema = z.object({
+  params: z.object({
+    userId: z
+      .string({ required_error: 'User ID is required' })
+      .uuid('Invalid user ID format'),
+    token: z
+      .string({ required_error: 'Verification token is required' })
+      .min(1, 'Verification token cannot be empty'),
+  }),
+});
 
-// Response type for successful registration
+export const resendVerificationSchema = z.object({
+  body: z.object({
+    email: z
+      .string({ required_error: 'Email is required' })
+      .email('Invalid email format')
+      .trim()
+      .toLowerCase(),
+  }),
+});
+
+export const loginSchema = z.object({
+  body: z.object({
+    email: z
+      .string({ required_error: 'Email is required' })
+      .email('Invalid email format')
+      .trim()
+      .toLowerCase(),
+    password: z
+      .string({ required_error: 'Password is required' })
+      .min(1, 'Password is required'),
+  }),
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>['body'];
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>['params'];
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>['body'];
+export type LoginInput = z.infer<typeof loginSchema>['body'];
+
+// Response types
 export interface RegisterResponse {
-  id: number;
+  id: string;
   email: string;
-  name: string | null;
   createdAt: Date;
+}
+
+export interface VerifyEmailResponse {
+  email: string;
+  isVerified: boolean;
+}
+
+export interface LoginResponse {
+  user: {
+    id: string;
+    email: string;
+    isVerified: boolean;
+    isTwoFactorEnabled: boolean;
+  };
+  session: {
+    id: string;
+    accessToken: string;
+    refreshToken: string;
+  };
 }

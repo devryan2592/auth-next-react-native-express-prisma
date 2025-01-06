@@ -13,34 +13,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
-  id        Int       @id @default(autoincrement())
-  email     String    @unique
-  name      String?
-  password  String // Hashed password
-  profile   Profile?
-  sessions  Session[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id         String    @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email      String    @unique
+  password   String // Hashed password
+  isVerified Boolean   @default(false)
+  profile    Profile?
+  roles      Role[]    @default([USER])
+  sessions   Session[]
+
+  // New relations for verification tables
+  emailVerification  EmailVerification?
+  passwordReset      PasswordReset?
+  isTwoFactorEnabled Boolean            @default(false)
+  twoFactorToken     TwoFactorToken?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
 }
 
 model Profile {
-  id          Int      @id @default(autoincrement())
+  id          String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firstName   String?
+  lastName    String?
   bio         String?
   avatar      String? // URL to avatar image
   phoneNumber String?
   address     String?
-  userId      Int      @unique
+  userId      String   @unique @db.Uuid
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model Session {
-  id           String   @id @default(uuid())
-  sessionToken String   @unique
-  refreshToken String   @unique
-  userId       Int
+  id           String        @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String        @db.Uuid
   expires      DateTime
   ipAddress    String
   userAgent    String
@@ -48,11 +63,62 @@ model Session {
   deviceName   String?
   browser      String?
   os           String?
-  lastUsed     DateTime @default(now())
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsed     DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken RefreshToken?
 
   @@index([userId])
-  @@index([refreshToken])
+}
+
+model EmailVerification {
+  id        String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("email_verifications")
+}
+
+model PasswordReset {
+  id        String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("password_resets")
+}
+
+model RefreshToken {
+  id        String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId String   @unique @db.Uuid
+  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId])
+  @@map("refresh_tokens")
+}
+
+model TwoFactorToken {
+  id        String   @id @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code      String
+  userId    String   @unique @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("two_factor_tokens")
 }
