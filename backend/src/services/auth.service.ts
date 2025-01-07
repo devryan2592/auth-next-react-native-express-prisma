@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '@/utils/db';
 import { AppError } from '@/helpers/error';
 import { HTTP_STATUS } from '@/constants';
-import { sendVerificationEmail } from '@/services/email.service';
+import { sendVerificationEmail, sendTwoFactorEmail, sendPasswordResetEmail } from '@/services/email.service';
 import type { 
   RegisterInput, 
   RegisterResponse,
@@ -10,12 +10,13 @@ import type {
   VerifyEmailResponse,
   ResendVerificationInput,
   LoginInput,
-  LoginResponse
+  LoginResponse,
+  TwoFactorLoginInput
 } from '@/utils/validators/auth.validator';
 import { generateVerificationToken } from '@/utils/generators/generateVerificationTokens';
 import { generateTokens } from '@/utils/generators/generateTokens';
 import { generateTwoFactorToken } from '@/utils/generators/generateTwoFactorToken';
-import { sendTwoFactorEmail } from '@/services/email.service';
+import { TwoFactorType } from '@prisma/client';
 
 
 
@@ -170,14 +171,49 @@ export async function resendVerification(data: ResendVerificationInput): Promise
 }
 
 /**
+ * Verify a 2FA token for a specific user and type
+ * @throws {AppError} If token is invalid, expired, or already used
+ */
+async function verifyTwoFactorToken(
+  userId: string,
+  code: string,
+  type: TwoFactorType
+): Promise<void> {
+  const twoFactorToken = await prisma.twoFactorToken.findFirst({
+    where: {
+      userId,
+      code,
+      type,
+      used: false,
+      expiresAt: {
+        gt: new Date(),
+      },
+    },
+  });
+
+  if (!twoFactorToken) {
+    throw new AppError('Invalid or expired 2FA code', HTTP_STATUS.UNAUTHORIZED);
+  }
+
+  // Mark token as used
+  await prisma.twoFactorToken.update({
+    where: { id: twoFactorToken.id },
+    data: { used: true },
+  });
+}
+
+/**
  * Login user
  * @throws {AppError} If credentials are invalid or email is not verified
  */
 export async function login(
-  data: LoginInput,
+  data: LoginInput | TwoFactorLoginInput,
   ipAddress: string,
-  userAgent: string
+  userAgent: string,
+  existingRefreshToken?: string
 ): Promise<LoginResponse | { twoFactorToken: string }> {
+
+  console.log('Login service called', existingRefreshToken);
   // Find user
   const user = await prisma.user.findUnique({
     where: { email: data.email },
@@ -205,51 +241,96 @@ export async function login(
     throw new AppError('Please verify your email first', HTTP_STATUS.UNAUTHORIZED);
   }
 
-  // Handle 2FA if enabled
+  // Handle 2FA
   if (user.isTwoFactorEnabled) {
-    const { token, expiresAt } = generateTwoFactorToken();
+    // If 2FA code is provided, verify it
+    if ('twoFactorCode' in data) {
+      await verifyTwoFactorToken(user.id, data.twoFactorCode, TwoFactorType.LOGIN);
+    } else {
+      // Generate and save new 2FA token
+      const { token, expiresAt } = generateTwoFactorToken();
 
-    // Save 2FA token
-    await prisma.twoFactorToken.upsert({
-      where: { userId: user.id },
-      create: {
-        userId: user.id,
+      await prisma.twoFactorToken.create({
+        data: {
+          userId: user.id,
+          type: TwoFactorType.LOGIN,
+          code: token,
+          expiresAt,
+        },
+      });
+
+      // Send 2FA code via email
+      await sendTwoFactorEmail({
+        to: user.email,
         code: token,
-        expiresAt,
-      },
-      update: {
-        code: token,
-        expiresAt,
-        used: false,
-      },
-    });
+      });
 
-    // Send 2FA code via email
-    await sendTwoFactorEmail({
-      to: user.email,
-      code: token,
-    });
-
-    return { twoFactorToken: token } as const;
+      return { twoFactorToken: token } as const;
+    }
   }
 
-  // Generate tokens and create session
+  // Generate tokens
   const { accessToken, refreshToken } = generateTokens(user.id);
 
-  const session = await prisma.session.create({
-    data: {
-      userId: user.id,
-      refreshToken: {
-        create: {
-          token: refreshToken,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+  let session;
+
+  if (existingRefreshToken) {
+    console.log('existingRefreshToken', existingRefreshToken);
+    console.log('user.id', user.id);
+    // Find existing session with refresh token
+    const existingSession = await prisma.session.findFirst({
+      where: {
+        userId: user.id,
+        refreshToken: {
+          token: existingRefreshToken
         }
+      }
+    });
+
+    console.log('existingSession', existingSession);
+
+    if (existingSession) {
+      // Update existing session
+      session = await prisma.session.update({
+        where: { id: existingSession.id },
+        data: {
+          lastUsed: new Date(),
+          ipAddress,
+          userAgent,
+          refreshToken: {
+            update: {
+              token: refreshToken,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            },
+          },
+        },
+        include: {
+          refreshToken: true,
+        },
+      });
+    }
+  }
+
+  if (!session) {
+    // Create new session with refresh token
+    session = await prisma.session.create({
+      data: {
+        userId: user.id,
+        ipAddress,
+        userAgent,
+        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        refreshToken: {
+          create: {
+            token: refreshToken,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          },
+        },
       },
-      ipAddress,
-      userAgent,
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    },
-  });
+      include: {
+        refreshToken: true,
+      },
+    });
+  }
 
   return {
     user: {
@@ -261,7 +342,168 @@ export async function login(
     session: {
       id: session.id,
       accessToken,
-      refreshToken,
+      refreshToken: session.refreshToken!.token,
     },
-  } as LoginResponse;
+  };
+}
+
+/**
+ * Request password reset
+ * @throws {AppError} If email doesn't exist
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError('Email not found', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  // Generate reset token using Node's webcrypto
+  const tokenBuffer = new Uint8Array(32);
+  crypto.getRandomValues(tokenBuffer);
+  const token = Array.from(tokenBuffer)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+  // Save reset token
+  await prisma.passwordReset.upsert({
+    where: { userId: user.id },
+    create: {
+      userId: user.id,
+      token,
+      expiresAt,
+    },
+    update: {
+      token,
+      expiresAt,
+    },
+  });
+
+  // Send reset email
+  await sendPasswordResetEmail({
+    to: user.email,
+    token,
+  });
+}
+
+/**
+ * Reset password with token
+ * @throws {AppError} If token is invalid or expired
+ */
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  const reset = await prisma.passwordReset.findFirst({
+    where: { token },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          password: true,
+        },
+      },
+    },
+  });
+
+  if (!reset || !reset.user) {
+    throw new AppError('Invalid reset token', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  if (reset.expiresAt < new Date()) {
+    throw new AppError('Reset token has expired', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  // Check if new password is same as old password
+  const isSamePassword = await bcrypt.compare(newPassword, reset.user.password);
+  if (isSamePassword) {
+    throw new AppError('New password must be different from old password', HTTP_STATUS.BAD_REQUEST);
+  }
+
+  // Hash new password
+  const salt = await bcrypt.genSalt(12);
+  const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+  // Update password and delete reset token
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: reset.user.id },
+      data: { password: hashedPassword },
+    }),
+    prisma.passwordReset.delete({
+      where: { userId: reset.user.id },
+    }),
+  ]);
+}
+
+/**
+ * Change user's password
+ * @throws {AppError} If old password is incorrect or 2FA code is invalid
+ */
+export async function changePassword(
+  userId: string,
+  oldPassword: string,
+  newPassword: string,
+  twoFactorCode?: string
+): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      password: true,
+      isTwoFactorEnabled: true,
+      email: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError('User not found', HTTP_STATUS.NOT_FOUND);
+  }
+
+  // Verify old password
+  const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+  if (!isPasswordValid) {
+    throw new AppError('Current password is incorrect', HTTP_STATUS.UNAUTHORIZED);
+  }
+
+  // Handle 2FA if enabled
+  if (user.isTwoFactorEnabled) {
+    if (!twoFactorCode) {
+      // Generate and save new 2FA token
+      const { token, expiresAt } = generateTwoFactorToken();
+
+      await prisma.twoFactorToken.create({
+        data: {
+          userId,
+          type: TwoFactorType.PASSWORD_CHANGE,
+          code: token,
+          expiresAt,
+        },
+      });
+
+      // Send 2FA code via email
+      await sendTwoFactorEmail({
+        to: user.email,
+        code: token,
+      });
+
+      throw new AppError('2FA code required', HTTP_STATUS.ACCEPTED);
+    }
+
+    // Verify 2FA token
+    await verifyTwoFactorToken(userId, twoFactorCode, TwoFactorType.PASSWORD_CHANGE);
+  }
+
+  // Hash and update new password
+  const salt = await bcrypt.genSalt(12);
+  const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
 }

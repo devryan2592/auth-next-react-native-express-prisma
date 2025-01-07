@@ -2,10 +2,17 @@ import { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { login } from '@/services/auth.service';
 import { catchAsync } from '@/helpers/catchAsync';
-import { loginSchema } from '@/utils/validators/auth.validator';
+import { loginSchema, twoFactorLoginSchema, LoginResponse } from '@/utils/validators/auth.validator';
 import { HTTP_STATUS } from '@/constants';
 
-
+// Helper function to detect API requests
+function isApiRequest(req: Request): boolean {
+  return (
+    req.headers.accept === 'application/json' ||
+    req.headers['content-type'] === 'application/json' ||
+    req.headers['x-requested-with'] === 'XMLHttpRequest'
+  );
+}
 
 /**
  * @swagger
@@ -13,6 +20,12 @@ import { HTTP_STATUS } from '@/constants';
  *   post:
  *     summary: Login user
  *     tags: [Authentication]
+ *     parameters:
+ *       - in: header
+ *         name: X-Refresh-Token
+ *         schema:
+ *           type: string
+ *         description: Optional refresh token for mobile apps
  *     requestBody:
  *       required: true
  *       content:
@@ -31,6 +44,12 @@ import { HTTP_STATUS } from '@/constants';
  *                 type: string
  *                 format: password
  *                 description: User's password
+ *               refreshToken:
+ *                 type: string
+ *                 description: Optional refresh token (alternative to cookie or header)
+ *               twoFactorCode:
+ *                 type: string
+ *                 description: Required if 2FA is enabled for the account
  *     responses:
  *       200:
  *         description: Login successful
@@ -87,48 +106,93 @@ import { HTTP_STATUS } from '@/constants';
  *         description: Invalid input
  *       401:
  *         description: Invalid credentials or unverified email
+ *       403:
+ *         description: Invalid 2FA code
  *       429:
  *         description: Too many login attempts
  */
 export const loginController = catchAsync(async (req: Request, res: Response) => {
-  // Validate request body
-  const validatedData = loginSchema.parse(req);
-  
   // Get IP address and user agent
   const ipAddress = req.ip || '0.0.0.0';
   const userAgent = req.get('user-agent') ?? 'unknown';
 
-  // Login user
-  const result = await login(validatedData.body, ipAddress, userAgent);
+  // Get refresh token from multiple sources
+  const refreshToken = 
+    req.cookies.refreshToken || // Web cookie
+    (req.headers.authorization?.startsWith('Bearer ') && req.headers.authorization.split(' ')[1]) || // Bearer token
+    req.headers['x-refresh-token'] || // Custom header for mobile apps
+    req.body.refreshToken; // Request body
 
-  // Handle 2FA response
-  if ('twoFactorToken' in result) {
-    return res.status(HTTP_STATUS.ACCEPTED).json({
-      status: 'pending',
-      message: 'Two-factor authentication code sent',
+  // Try to validate with 2FA schema first
+  try {
+    const validatedData = twoFactorLoginSchema.parse(req);
+    const result = await login(validatedData.body, ipAddress, userAgent, refreshToken);
+    
+    if ('twoFactorToken' in result) {
+      return res.status(HTTP_STATUS.ACCEPTED).json({
+        status: 'pending',
+        message: 'Two-factor authentication code sent',
+      });
+    }
+
+    // Set cookies for web clients
+    if (req.headers['user-agent'] && !isApiRequest(req)) {
+      res.cookie('refreshToken', result.session.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      res.cookie('accessToken', result.session.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 1 * 60 * 60 * 1000, // 1 hour
+      });
+    }
+
+    return res.status(HTTP_STATUS.OK).json({
+      status: 'success',
+      message: 'Login successful',
+      data: result,
+    });
+  } catch {
+
+    console.log('2FA validation failed');
+    // If 2FA validation fails, try regular login
+    const validatedData = loginSchema.parse(req);
+    const result = await login(validatedData.body, ipAddress, userAgent, refreshToken);
+
+    // If 2FA is required, return 202
+    if ('twoFactorToken' in result) {
+      return res.status(HTTP_STATUS.ACCEPTED).json({
+        status: 'pending',
+        message: 'Two-factor authentication code sent',
+      });
+    }
+
+    // Set cookies for web clients
+    if (req.headers['user-agent'] && !isApiRequest(req)) {
+      res.cookie('refreshToken', result.session.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      res.cookie('accessToken', result.session.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 1 * 60 * 60 * 1000, // 1 hour
+      });
+    }
+
+    return res.status(HTTP_STATUS.OK).json({
+      status: 'success',
+      message: 'Login successful',
+      data: result,
     });
   }
-
-  // Set refresh token in HTTP-only cookie
-  res.cookie('refreshToken', result.session.refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  });
-
-  // Set access token in HTTP-only cookie
-  res.cookie('accessToken', result.session.accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 1 * 60 * 60 * 1000, // 1 hour
-  });
-
-  // Send response
-  return res.status(HTTP_STATUS.OK).json({
-    status: 'success',
-    message: 'Login successful',
-    data: result,
-  });
 });

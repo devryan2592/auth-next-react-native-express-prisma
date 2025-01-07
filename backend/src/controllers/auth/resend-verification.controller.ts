@@ -54,7 +54,7 @@ export const resendVerificationController = catchAsync(async (req: Request, res:
   await resendVerification(validatedData.body);
 
   // Send response
-  res.status(HTTP_STATUS.OK).json({
+  return res.status(HTTP_STATUS.OK).json({
     status: 'success',
     message: 'Verification email sent successfully',
   });

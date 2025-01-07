@@ -73,7 +73,7 @@ export const registerController = catchAsync(async (req: Request, res: Response)
   const user = await register(validatedData.body);
 
   // Send response
-  res.status(HTTP_STATUS.CREATED).json({
+  return res.status(HTTP_STATUS.CREATED).json({
     status: 'success',
     message: 'Registration successful',
     data: user,
