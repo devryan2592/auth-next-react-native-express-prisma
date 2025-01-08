@@ -21,27 +21,7 @@ import { useState } from "react";
 import { PasswordStrength } from "@/components/password-strength";
 import Link from "next/link";
 import * as z from "zod";
-
-const registerSchema = z
-  .object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Invalid email address"),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/\d/, "Password must contain at least one number")
-      .regex(
-        /[!@#$%^&*(),.?":{}|<>]/,
-        "Password must contain at least one special character",
-      ),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+import registerSchema from "@/lib/schemas/registerSchema";
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -53,23 +33,24 @@ export function RegisterForm() {
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
+      email: "admin@gmail.com",
+      password: "Admin123*",
+      confirmPassword: "Admin123*",
     },
   });
 
   const registerMutation = useMutation({
     mutationFn: (data: RegisterFormValues) =>
       authService.register({
-        name: data.name,
         email: data.email,
         password: data.password,
       }),
-    onSuccess: () => {
-      toast.success("Registration successful");
-      router.push("/auth/login");
+    onSuccess: (data) => {
+      toast.success(data.message);
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 3000);
+      return;
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.message || "Registration failed");
@@ -84,19 +65,6 @@ export function RegisterForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter your name" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <FormField
           control={form.control}
           name="email"

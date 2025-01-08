@@ -32,7 +32,7 @@ export function PasswordStrength({ password }: PasswordStrengthProps) {
 
   const getStrengthText = (password: string) => {
     const width = parseInt(getStrengthWidth(password));
-    if (!password) return "Enter password";
+    if (!password) return "";
     if (width <= 20) return "Very weak";
     if (width <= 40) return "Weak";
     if (width <= 60) return "Fair";
@@ -46,7 +46,7 @@ export function PasswordStrength({ password }: PasswordStrengthProps) {
         <div
           className={cn(
             "h-full rounded-full transition-all duration-300",
-            getStrengthColor(password),
+            getStrengthColor(password)
           )}
           style={{ width: getStrengthWidth(password) }}
         />

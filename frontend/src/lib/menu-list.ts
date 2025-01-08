@@ -47,73 +47,23 @@ export function getMenuList(pathname: string): Group[] {
       groupLabel: "CRM",
       menus: [
         {
-          href: "/contacts",
+          href: "/dashboard",
           label: "Contacts",
           icon: Users,
           submenus: [
             {
               icon: Eye,
-              href: "/contacts",
+              href: "/dashboard",
               label: "All Contacts"
             },
             {
               icon: UserPlus,
-              href: "/contacts/new",
+              href: "/dashboard",
               label: "Add Contact"
             }
           ]
         },
-        {
-          href: "/leads",
-          label: "Leads",
-          icon: Users,
-          submenus: [
-            {
-              icon: Eye,
-              href: "/leads",
-              label: "All Leads"
-            },
-            {
-              icon: UserPlus,
-              href: "/leads/new",
-              label: "Add Lead"
-            }
           ]
-        },
-        
-      ]
-    },
-    {
-      groupLabel: "Content",
-      menus: [
-        {
-          href: "/posts",
-          label: "Posts",
-          icon: SquarePen,
-          submenus: [
-            {
-              icon: SquarePen,
-              href: "/posts",
-              label: "All Posts"
-            },
-            {
-              icon: SquarePen,
-              href: "/posts/new",
-              label: "New Post"
-            }
-          ]
-        },
-        {
-          href: "/categories",
-          label: "Categories",
-          icon: Bookmark
-        },
-        {
-          href: "/tags",
-          label: "Tags",
-          icon: Tag
-        }
-      ]
     },
     {
       groupLabel: "Settings",
@@ -124,7 +74,7 @@ export function getMenuList(pathname: string): Group[] {
           icon: Users
         },
         {
-          href: "/account",
+          href: "/dashboard/account",
           label: "Account",
           icon: Settings
         }

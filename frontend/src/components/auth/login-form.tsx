@@ -23,8 +23,13 @@ import * as z from "zod";
 import { useAuthStore } from "@/lib/stores/auth";
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z
+    .string({ required_error: "Email is required" })
+    .email("Invalid email address")
+    .min(1, "Email is required"),
+  password: z
+    .string({ required_error: "Password is required" })
+    .min(1, "Password is required"),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -49,10 +54,24 @@ export function LoginForm() {
       setAccessToken(data.tokens.accessToken);
       toast.success("Login successful");
       router.push("/dashboard");
+      router.refresh();
     },
     onError: (error: any) => {
-      toast.error(error?.response?.data?.message || "Login failed");
-      console.error("Error logging in:", error);
+      const errorMessage = error?.response?.data?.message;
+
+      if (errorMessage?.includes("verify your email")) {
+        toast.error("Please verify your email before logging in", {
+          action: {
+            label: "Resend verification",
+            onClick: () => router.push("/auth/resend-verification-email"),
+          },
+        });
+      } else if (errorMessage?.includes("2FA")) {
+        // Handle 2FA flow here if implemented
+        toast.error("2FA is required");
+      } else {
+        toast.error(errorMessage || "Invalid email or password");
+      }
     },
   });
 
@@ -74,6 +93,7 @@ export function LoginForm() {
                   type="email"
                   placeholder="Enter your email"
                   autoComplete="email"
+                  disabled={loginMutation.isPending}
                   {...field}
                 />
               </FormControl>
@@ -86,13 +106,22 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Password</FormLabel>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-xs text-muted-foreground hover:text-primary"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <FormControl>
                 <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     autoComplete="current-password"
+                    disabled={loginMutation.isPending}
                     {...field}
                   />
                   <Button
@@ -101,6 +130,7 @@ export function LoginForm() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={loginMutation.isPending}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -128,15 +158,25 @@ export function LoginForm() {
             "Login"
           )}
         </Button>
-        <p className="text-center text-sm text-muted-foreground">
-          Don't have an account?{" "}
-          <Link
-            href="/auth/register"
-            className="font-medium text-primary hover:underline"
-          >
-            Register
-          </Link>
-        </p>
+        <div className="space-y-2">
+          <p className="text-center text-sm text-muted-foreground">
+            Don't have an account?{" "}
+            <Link
+              href="/auth/register"
+              className="font-medium text-primary hover:underline"
+            >
+              Register
+            </Link>
+          </p>
+          <p className="text-center text-xs text-muted-foreground">
+            <Link
+              href="/auth/resend-verification-email"
+              className="font-medium text-primary hover:underline"
+            >
+              Resend verification email
+            </Link>
+          </p>
+        </div>
       </form>
     </Form>
   );

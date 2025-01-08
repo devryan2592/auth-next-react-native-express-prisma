@@ -26,7 +26,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronRight, GalleryVerticalEnd } from "lucide-react";
+import { ChevronRight, KeyRound } from "lucide-react";
 import AppSidebarFooter from "./app-sidebar-footer";
 import { useIsMobile } from "@/hooks/use-mobile";
 // import { useAuthStore } from "@/lib/stores/auth";
@@ -76,12 +76,10 @@ const AppSidebar = () => {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <GalleryVerticalEnd />
+                <KeyRound className="h-6 w-6" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">
-                  Smart Turn Holidays
-                </span>
+                <span className="text-lg font-bold">AuthFlow</span>
                 <span className="truncate text-xs">Admin Dashboard</span>
               </div>
             </SidebarMenuButton>

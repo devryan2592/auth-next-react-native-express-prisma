@@ -19,7 +19,6 @@ import { HTTP_STATUS } from '@/constants';
  *             required:
  *               - email
  *               - password
- *               - confirmPassword
  *             properties:
  *               email:
  *                 type: string
@@ -30,10 +29,6 @@ import { HTTP_STATUS } from '@/constants';
  *                 format: password
  *                 minLength: 8
  *                 description: User's password (min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char)
- *               confirmPassword:
- *                 type: string
- *                 format: password
- *                 description: Password confirmation
  *     responses:
  *       201:
  *         description: User successfully registered
@@ -75,7 +70,7 @@ export const registerController = catchAsync(async (req: Request, res: Response)
   // Send response
   return res.status(HTTP_STATUS.CREATED).json({
     status: 'success',
-    message: 'Registration successful',
+    message: 'Registered successfully. Please verify your email to continue.',
     data: user,
   });
 }); 

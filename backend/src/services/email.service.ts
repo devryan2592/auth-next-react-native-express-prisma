@@ -42,7 +42,7 @@ export const sendVerificationEmail = async (payload: {
 }) => {
   try {
     const template = await loadTemplate('verify-email');
-    const verificationLink = `${process.env.CLIENT_URL}/auth/verify/${payload.userId}/${payload.token}`;
+    const verificationLink = `${process.env.CLIENT_URL}/auth/verify-email/${payload.userId}/${payload.token}`;
 
     const html = template({
       verificationLink,
