@@ -4,9 +4,11 @@ import Cookies from 'js-cookie'
 
 interface User {
   id: string
-  name: string
   email: string
-  role: string
+  isVerified: boolean
+  isTwoFactorEnabled: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 interface AuthState {

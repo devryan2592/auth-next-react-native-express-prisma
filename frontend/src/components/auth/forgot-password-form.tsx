@@ -46,14 +46,18 @@ export function ForgotPasswordForm() {
       toast.success(
         "If an account exists with this email, you will receive password reset instructions"
       );
-      router.push("/auth/login");
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 2000);
     },
     onError: (error: any) => {
       // We don't want to reveal if the email exists or not for security reasons
       toast.success(
         "If an account exists with this email, you will receive password reset instructions"
       );
-      router.push("/auth/login");
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 2000);
     },
   });
 
@@ -64,16 +68,6 @@ export function ForgotPasswordForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Forgot Password
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Enter your email address and we'll send you instructions to reset
-            your password.
-          </p>
-        </div>
-
         <FormField
           control={form.control}
           name="email"
@@ -112,13 +106,16 @@ export function ForgotPasswordForm() {
           )}
         </Button>
 
-        <div className="text-center">
-          <Link
-            href="/auth/login"
-            className="text-sm text-muted-foreground hover:text-primary"
-          >
-            Back to login
-          </Link>
+        <div className="space-y-2">
+          <p className="text-center text-sm text-muted-foreground">
+            Remember your password?{" "}
+            <Link
+              href="/auth/login"
+              className="font-medium text-primary hover:underline"
+            >
+              Login
+            </Link>
+          </p>
         </div>
       </form>
     </Form>

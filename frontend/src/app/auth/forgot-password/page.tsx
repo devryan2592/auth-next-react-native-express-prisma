@@ -1,5 +1,11 @@
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -9,12 +15,17 @@ export const metadata: Metadata = {
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
-      <Card className="w-full max-w-[400px]">
-        <CardContent className="pt-6">
-          <ForgotPasswordForm />
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl">Forgot Password</CardTitle>
+        <CardDescription>
+          Enter your email and we'll send you instructions to reset your
+          password.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ForgotPasswordForm />
+      </CardContent>
+    </Card>
   );
 }

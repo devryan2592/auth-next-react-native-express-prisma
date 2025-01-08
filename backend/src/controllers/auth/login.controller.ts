@@ -1,17 +1,17 @@
 import { Request, Response } from 'express';
-import rateLimit from 'express-rate-limit';
 import { login } from '@/services/auth.service';
 import { catchAsync } from '@/helpers/catchAsync';
-import { loginSchema, twoFactorLoginSchema, LoginResponse } from '@/utils/validators/auth.validator';
+import { loginSchema, twoFactorLoginSchema } from '@/utils/validators/auth.validator';
 import { HTTP_STATUS } from '@/constants';
 
 // Helper function to detect API requests
 function isApiRequest(req: Request): boolean {
-  return (
-    req.headers.accept === 'application/json' ||
-    req.headers['content-type'] === 'application/json' ||
-    req.headers['x-requested-with'] === 'XMLHttpRequest'
-  );
+  // Check for specific API client headers
+  const isApiClient =
+    req.headers['x-api-client'] === 'true' || // Custom header for API clients
+    !req.headers['user-agent']; // No user agent usually means API client
+
+  return isApiClient;
 }
 
 /**
@@ -117,7 +117,7 @@ export const loginController = catchAsync(async (req: Request, res: Response) =>
   const userAgent = req.get('user-agent') ?? 'unknown';
 
   // Get refresh token from multiple sources
-  const refreshToken = 
+  const refreshToken =
     req.cookies.refreshToken || // Web cookie
     (req.headers.authorization?.startsWith('Bearer ') && req.headers.authorization.split(' ')[1]) || // Bearer token
     req.headers['x-refresh-token'] || // Custom header for mobile apps
@@ -127,7 +127,7 @@ export const loginController = catchAsync(async (req: Request, res: Response) =>
   try {
     const validatedData = twoFactorLoginSchema.parse(req);
     const result = await login(validatedData.body, ipAddress, userAgent, refreshToken);
-    
+
     if ('twoFactorToken' in result) {
       return res.status(HTTP_STATUS.ACCEPTED).json({
         status: 'pending',
@@ -141,6 +141,7 @@ export const loginController = catchAsync(async (req: Request, res: Response) =>
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
+        path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
@@ -148,6 +149,7 @@ export const loginController = catchAsync(async (req: Request, res: Response) =>
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
+        path: '/',
         maxAge: 1 * 60 * 60 * 1000, // 1 hour
       });
     }
@@ -158,7 +160,6 @@ export const loginController = catchAsync(async (req: Request, res: Response) =>
       data: result,
     });
   } catch {
-
     console.log('2FA validation failed');
     // If 2FA validation fails, try regular login
     const validatedData = loginSchema.parse(req);

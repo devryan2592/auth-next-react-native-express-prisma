@@ -42,35 +42,44 @@ export function LoginForm() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "admin@gmail.com",
+      password: "Admin1234*",
     },
   });
 
   const loginMutation = useMutation({
     mutationFn: authService.login,
-    onSuccess: (data) => {
-      setUser(data.user);
-      setAccessToken(data.tokens.accessToken);
+    onSuccess: (response) => {
+      const { user, tokens } = response.data;
+      setUser(user);
+      setAccessToken(tokens.accessToken);
       toast.success("Login successful");
       router.push("/dashboard");
       router.refresh();
     },
     onError: (error: any) => {
-      const errorMessage = error?.response?.data?.message;
+      const errorMessage = error?.message || "Invalid email or password";
 
-      if (errorMessage?.includes("verify your email")) {
+      if (errorMessage.includes("verify your email")) {
         toast.error("Please verify your email before logging in", {
           action: {
             label: "Resend verification",
-            onClick: () => router.push("/auth/resend-verification-email"),
+            onClick: () => {
+              const email = form.getValues("email");
+              router.push(
+                `/auth/resend-verification-email?email=${encodeURIComponent(
+                  email
+                )}`
+              );
+            },
           },
         });
-      } else if (errorMessage?.includes("2FA")) {
+      } else if (errorMessage.includes("2FA")) {
         // Handle 2FA flow here if implemented
-        toast.error("2FA is required");
+        toast.error("Two-factor authentication is required");
+        // Redirect to 2FA page or show 2FA input
       } else {
-        toast.error(errorMessage || "Invalid email or password");
+        toast.error(errorMessage);
       }
     },
   });
@@ -106,8 +115,8 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
+              <FormLabel htmlFor="password">Password</FormLabel>
               <div className="flex items-center justify-between">
-                <FormLabel>Password</FormLabel>
                 <Link
                   href="/auth/forgot-password"
                   className="text-xs text-muted-foreground hover:text-primary"
@@ -118,6 +127,7 @@ export function LoginForm() {
               <FormControl>
                 <div className="relative">
                   <Input
+                    id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     autoComplete="current-password"
