@@ -9,23 +9,21 @@ export const registerSchema = z.object({
       .max(255, 'Email must be less than 255 characters')
       .trim()
       .toLowerCase(),
-    
+
     password: z
       .string({ required_error: 'Password is required' })
       .min(8, 'Password must be at least 8 characters')
       .max(100, 'Password must be less than 100 characters')
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/,
-        'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+        'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
       ),
   }),
 });
 
 export const verifyEmailSchema = z.object({
   params: z.object({
-    userId: z
-      .string({ required_error: 'User ID is required' })
-      .uuid('Invalid user ID format'),
+    userId: z.string({ required_error: 'User ID is required' }).uuid('Invalid user ID format'),
     token: z
       .string({ required_error: 'Verification token is required' })
       .min(1, 'Verification token cannot be empty'),
@@ -49,9 +47,7 @@ const loginSchemaBase = z.object({
     .email('Invalid email format')
     .trim()
     .toLowerCase(),
-  password: z
-    .string({ required_error: 'Password is required' })
-    .min(1, 'Password is required'),
+  password: z.string({ required_error: 'Password is required' }).min(1, 'Password is required'),
   refreshToken: z.string().optional(),
 });
 
@@ -94,26 +90,25 @@ const changePasswordSchemaBase = z.object({
 export const changePasswordSchema = changePasswordSchemaBase.refine(
   (data) => data.oldPassword !== data.newPassword,
   {
-    message: "New password must be different from old password",
-    path: ["newPassword"],
-  }
+    message: 'New password must be different from old password',
+    path: ['newPassword'],
+  },
 );
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 // Two Factor Change Password Schema
-export const twoFactorChangePasswordSchema = z.object({
-  ...changePasswordSchemaBase.shape,
-  twoFactorCode: z
-    .string({ required_error: '2FA code is required' })
-    .length(6, '2FA code must be 6 characters'),
-}).refine(
-  (data) => data.oldPassword !== data.newPassword,
-  {
-    message: "New password must be different from old password",
-    path: ["newPassword"],
-  }
-);
+export const twoFactorChangePasswordSchema = z
+  .object({
+    ...changePasswordSchemaBase.shape,
+    twoFactorCode: z
+      .string({ required_error: '2FA code is required' })
+      .length(6, '2FA code must be 6 characters'),
+  })
+  .refine((data) => data.oldPassword !== data.newPassword, {
+    message: 'New password must be different from old password',
+    path: ['newPassword'],
+  });
 
 export type TwoFactorChangePasswordInput = z.infer<typeof twoFactorChangePasswordSchema>;
 
@@ -151,6 +146,9 @@ export interface LoginResponse {
 
 export const twoFactorSchema = z.object({
   body: z.object({
-    code: z.string().length(6).regex(/^\d+$/, 'Code must be numeric'),
+    code: z
+      .string({ required_error: '2FA code is required' })
+      .length(6, '2FA code must be 6 characters'),
+    type: z.enum(['LOGIN', 'PASSWORD_CHANGE']).optional(),
   }),
 });

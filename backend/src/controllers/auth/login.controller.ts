@@ -119,7 +119,6 @@ export const loginController = catchAsync(async (req: Request, res: Response) =>
   // Get refresh token from multiple sources
   const refreshToken =
     req.cookies.refreshToken || // Web cookie
-    (req.headers.authorization?.startsWith('Bearer ') && req.headers.authorization.split(' ')[1]) || // Bearer token
     req.headers['x-refresh-token'] || // Custom header for mobile apps
     req.body.refreshToken; // Request body
 

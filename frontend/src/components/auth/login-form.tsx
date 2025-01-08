@@ -50,6 +50,20 @@ export function LoginForm() {
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: (response) => {
+      if (
+        response.status === "pending" &&
+        response?.message?.includes("Two-factor")
+      ) {
+        toast.info("Two-factor authentication code sent");
+        router.push("/auth/two-factor");
+        return;
+      }
+
+      if (!response.data) {
+        toast.error("Invalid response from server");
+        return;
+      }
+
       const { user, tokens } = response.data;
       setUser(user);
       setAccessToken(tokens.accessToken);
@@ -74,10 +88,6 @@ export function LoginForm() {
             },
           },
         });
-      } else if (errorMessage.includes("2FA")) {
-        // Handle 2FA flow here if implemented
-        toast.error("Two-factor authentication is required");
-        // Redirect to 2FA page or show 2FA input
       } else {
         toast.error(errorMessage);
       }

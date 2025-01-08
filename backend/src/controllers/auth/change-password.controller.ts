@@ -46,14 +46,14 @@ import { HTTP_STATUS } from '@/constants';
 export const changePasswordController = catchAsync(async (req: Request, res: Response) => {
   // Validate request body
   const validatedData = twoFactorChangePasswordSchema.parse(req.body);
-  
+
   const { oldPassword, newPassword, twoFactorCode } = validatedData;
   const userId = req.user!.id;
 
   await changePassword(userId, oldPassword, newPassword, twoFactorCode);
-  
-  res.status(HTTP_STATUS.OK).json({
+
+  return res.status(HTTP_STATUS.OK).json({
     status: 'success',
-    message: 'Password has been changed successfully'
+    message: 'Password has been changed successfully',
   });
-}); 
+});
