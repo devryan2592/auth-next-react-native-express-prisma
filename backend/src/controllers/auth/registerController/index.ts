@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { register } from '@/services/auth.service';
+import { register as registerService } from './service';
 import { catchAsync } from '@/helpers/catchAsync';
-import { registerSchema } from '@/utils/validators/auth.validator';
+import { registerSchema } from './schema';
 import { HTTP_STATUS } from '@/constants';
 
 /**
@@ -63,9 +63,9 @@ import { HTTP_STATUS } from '@/constants';
 export const registerController = catchAsync(async (req: Request, res: Response) => {
   // Validate request body
   const validatedData = registerSchema.parse(req);
-  
+
   // Register user
-  const user = await register(validatedData.body);
+  const user = await registerService(validatedData.body);
 
   // Send response
   return res.status(HTTP_STATUS.CREATED).json({
@@ -73,4 +73,4 @@ export const registerController = catchAsync(async (req: Request, res: Response)
     message: 'Registered successfully. Please verify your email to continue.',
     data: user,
   });
-}); 
+});

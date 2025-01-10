@@ -1,12 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { toast } from "sonner";
 import {
   InputOTP,
@@ -14,7 +21,6 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { REGEXP_ONLY_DIGITS_AND_CHARS } from "input-otp";
 
 import { authService } from "@/lib/services/auth";
 import { useAuthStore } from "@/lib/stores/auth";
@@ -29,7 +35,20 @@ type FormData = z.infer<typeof formSchema>;
 export function TwoFactorForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const setUser = useAuthStore((state) => state.setUser);
+  const setAccessToken = useAuthStore((state) => state.setAccessToken);
+
+  // Get params from URL
+  const userId = searchParams.get("userId");
+  const type = searchParams.get("type");
+
+  // Validate required params
+  if (!userId || !type) {
+    toast.error("Invalid verification request");
+    router.push("/auth/login");
+    return null;
+  }
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -39,10 +58,16 @@ export function TwoFactorForm() {
   });
 
   const verifyTwoFactorMutation = useMutation({
-    mutationFn: (otp: string) => authService.verifyTwoFactor(otp),
+    mutationFn: (otp: string) =>
+      authService.verifyTwoFactor(
+        otp,
+        userId,
+        type as "LOGIN" | "PASSWORD_CHANGE"
+      ),
     onSuccess: (response) => {
-      if (response.data?.user) {
-        setUser(response.data.user);
+      if (response.status === "success" && response.data) {
+        const { user, session } = response.data;
+
         toast.success("Two-factor authentication successful");
         router.push("/dashboard");
       }
@@ -64,20 +89,20 @@ export function TwoFactorForm() {
           name="otp"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>New Password</FormLabel>
+              <FormLabel>Verification Code</FormLabel>
               <FormControl>
-            <InputOTP maxLength={6} {...field}>
-              <InputOTPGroup>
-                <InputOTPSlot index={0} />
-                <InputOTPSlot index={1} />
-                <InputOTPSlot index={2} />
-              </InputOTPGroup>
-              <InputOTPSeparator />
-              <InputOTPGroup>
-                <InputOTPSlot index={3} />
-                <InputOTPSlot index={4} />
-                <InputOTPSlot index={5} />
-              </InputOTPGroup>
+                <InputOTP maxLength={6} {...field} autoFocus={true}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
                 </InputOTP>
               </FormControl>
               <FormMessage />
@@ -85,8 +110,12 @@ export function TwoFactorForm() {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Verifying..." : "Verify Code"}
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={verifyTwoFactorMutation.isPending}
+        >
+          {verifyTwoFactorMutation.isPending ? "Verifying..." : "Verify Code"}
         </Button>
       </form>
     </Form>

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { changePassword } from '@/services/auth.service';
-import { twoFactorChangePasswordSchema } from '@/utils/validators/auth.validator';
+import { changePassword } from './service';
+import { twoFactorChangePasswordSchema } from '../twoFactorController/schema';
 import { catchAsync } from '@/helpers/catchAsync';
 import { HTTP_STATUS } from '@/constants';
 

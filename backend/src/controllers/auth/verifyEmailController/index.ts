@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { verifyEmail } from '@/services/auth.service';
+import { verifyEmail } from './service';
 import { catchAsync } from '@/helpers/catchAsync';
-import { verifyEmailSchema } from '@/utils/validators/auth.validator';
+import { verifyEmailSchema } from './schema';
 import { HTTP_STATUS } from '@/constants';
 
 /**
@@ -66,14 +66,14 @@ import { HTTP_STATUS } from '@/constants';
 export const verifyEmailController = catchAsync(async (req: Request, res: Response) => {
   // Validate params
   const validatedData = verifyEmailSchema.parse(req);
-  
+
   // Verify email
   const user = await verifyEmail(validatedData.params);
 
   // Send response
-  res.status(HTTP_STATUS.OK).json({
+  return res.status(HTTP_STATUS.OK).json({
     status: 'success',
     message: 'Email verified successfully',
     data: user,
   });
-}); 
+});

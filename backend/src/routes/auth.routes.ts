@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { 
-  registerController, 
-  verifyEmailController, 
-  resendVerificationController, 
+import {
+  registerController,
+  verifyEmailController,
+  resendVerificationController,
   loginController,
   requestPasswordResetController,
   resetPasswordController,
@@ -10,17 +10,14 @@ import {
   enable2FAController,
   confirm2FAController,
   disable2FAController,
-  verify2FAController
-} from '@/controllers/auth';
-import { 
+  verify2FAController,
   logout,
   logoutAll,
   logoutSession,
-  getSessions
-} from '@/controllers/auth/logout.controller';
+  getSessions,
+} from '@/controllers/auth';
 import { resendVerificationLimiter, loginRateLimiter } from '@/utils/limiters';
 import { requireAuth } from '@/middlewares/requireAuth';
-
 
 const router = Router();
 
@@ -38,7 +35,7 @@ router.post('/change-password', requireAuth, changePasswordController);
 
 // Two-factor authentication routes
 router.post('/2fa/enable', requireAuth, enable2FAController);
-router.post('/2fa/confirm', requireAuth,confirm2FAController);
+router.post('/2fa/confirm', requireAuth, confirm2FAController);
 router.post('/2fa/disable', requireAuth, disable2FAController);
 
 // Session management routes

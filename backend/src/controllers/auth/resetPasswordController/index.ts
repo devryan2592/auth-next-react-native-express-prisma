@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { resetPassword } from '@/services/auth.service';
-import { resetPasswordSchema } from '@/utils/validators/auth.validator';
+import { resetPassword } from './service';
+import { resetPasswordSchema } from './schema';
 import { catchAsync } from '@/helpers/catchAsync';
 import { HTTP_STATUS } from '@/constants';
 
@@ -48,12 +48,12 @@ import { HTTP_STATUS } from '@/constants';
 export const resetPasswordController = catchAsync(async (req: Request, res: Response) => {
   // Validate request body
   const validatedData = resetPasswordSchema.parse(req.body);
-  
+
   const { token, newPassword } = validatedData;
   await resetPassword(token, newPassword);
-  
-  res.status(HTTP_STATUS.OK).json({
+
+  return res.status(HTTP_STATUS.OK).json({
     status: 'success',
-    message: 'Password has been reset successfully'
+    message: 'Password has been reset successfully',
   });
-}); 
+});

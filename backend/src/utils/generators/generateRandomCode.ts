@@ -8,4 +8,4 @@ export function generateRandomCode(length: number): string {
   const max = Math.pow(10, length) - 1;
   const code = Math.floor(Math.random() * (max - min + 1)) + min;
   return code.toString().padStart(length, '0');
-} 
+}

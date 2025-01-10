@@ -1,16 +1,15 @@
 import axios from "axios";
 import { useAuthStore } from "@/lib/stores/auth";
-import Cookies from "js-cookie";
 
 export const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1",
-  
+
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
+  xsrfCookieName: "XSRF-TOKEN",
+  xsrfHeaderName: "X-XSRF-TOKEN",
 });
 
 // // Request interceptor
@@ -18,9 +17,9 @@ export const axiosInstance = axios.create({
 //   (config) => {
 //     const accessToken = useAuthStore.getState().accessToken;
 //     const cookieAccessToken = Cookies.get('accessToken');
-    
+
 //     const token = accessToken || cookieAccessToken;
-    
+
 //     if (token) {
 //       config.headers.Authorization = `Bearer ${token}`;
 //     }
@@ -76,34 +75,34 @@ export const axiosInstance = axios.create({
 
 //     return Promise.reject(error);
 //   }
-// ); 
+// );
 
-axiosInstance.interceptors.response.use(
-  (response) => {
-    console.log('Response headers:', response.headers);
-    console.log('Set-Cookie header:', response.headers['set-cookie']);
-    return response;
-  },
-  async (error) => {
-    const originalRequest = error.config;
+// axiosInstance.interceptors.response.use(
+//   (response) => {
+//     console.log('Response headers:', response.headers);
+//     console.log('Set-Cookie header:', response.headers['set-cookie']);
+//     return response;
+//   },
+//   async (error) => {
+//     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+//     if (error.response?.status === 401 && !originalRequest._retry) {
+//       originalRequest._retry = true;
 
-      try {
-        const response = await axiosInstance.post("/auth/refresh-token");
-        const { accessToken } = response.data.data;
+//       try {
+//         const response = await axiosInstance.post("/auth/refresh-token");
+//         const { accessToken } = response.data.data;
 
-        useAuthStore.getState().setAccessToken(accessToken);
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        return axiosInstance(originalRequest);
-      } catch (refreshError) {
-        useAuthStore.getState().logout();
-        window.location.href = "/auth/login";
-        return Promise.reject(refreshError);
-      }
-    }
+//         useAuthStore.getState().setAccessToken(accessToken);
+//         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+//         return axiosInstance(originalRequest);
+//       } catch (refreshError) {
+//         useAuthStore.getState().logout();
+//         window.location.href = "/auth/login";
+//         return Promise.reject(refreshError);
+//       }
+//     }
 
-    return Promise.reject(error);
-  }
-); 
+//     return Promise.reject(error);
+//   }
+// );

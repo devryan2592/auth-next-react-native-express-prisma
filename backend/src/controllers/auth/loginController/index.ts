@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
-import { login } from '@/services/auth.service';
+import { login } from './service';
+import { twoFactorLoginSchema } from '../twoFactorController/schema';
 import { catchAsync } from '@/helpers/catchAsync';
-import { loginSchema, twoFactorLoginSchema } from '@/utils/validators/auth.validator';
 import { HTTP_STATUS } from '@/constants';
+import { loginSchema } from './schema';
 
 // Helper function to detect API requests
 function isApiRequest(req: Request): boolean {
@@ -131,6 +132,11 @@ export const loginController = catchAsync(async (req: Request, res: Response) =>
       return res.status(HTTP_STATUS.ACCEPTED).json({
         status: 'pending',
         message: 'Two-factor authentication code sent',
+        data: {
+          twoFactorToken: result.twoFactorToken,
+          userId: result.userId,
+          type: result.type,
+        },
       });
     }
 
@@ -169,6 +175,11 @@ export const loginController = catchAsync(async (req: Request, res: Response) =>
       return res.status(HTTP_STATUS.ACCEPTED).json({
         status: 'pending',
         message: 'Two-factor authentication code sent',
+        data: {
+          twoFactorToken: result.twoFactorToken,
+          userId: result.userId,
+          type: result.type,
+        },
       });
     }
 

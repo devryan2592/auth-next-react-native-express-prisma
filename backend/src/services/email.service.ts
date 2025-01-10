@@ -1,41 +1,15 @@
-import nodemailer from 'nodemailer';
-import handlebars from 'handlebars';
-import fs from 'fs/promises';
-import path from 'path';
 import { AppError } from '@/helpers/error';
 import { HTTP_STATUS } from '@/constants';
 import { logger } from '@/utils/logger';
+import { createEmailTransport } from '@/helpers/createEmailTransport';
+import loadTemplate from '@/helpers/loadTemplates';
 
-let transporter: nodemailer.Transporter;
-
-// Initialize transporter based on environment
-if (process.env.NODE_ENV === 'development') {
-  transporter = nodemailer.createTransport({
-    host: 'localhost',
-    port: 1025,
-  });
-} else {
-  // TODO: Configure production email service (e.g., Mailgun, SendGrid, etc.)
-  logger.warn('Production email service not configured');
-  transporter = nodemailer.createTransport({
-    host: 'localhost',
-    port: 1025,
-  });
-}
-
-/**
- * Load and compile a Handlebars template
- */
-const loadTemplate = async (templateName: string) => {
-  const templatePath = path.join(__dirname, '..', 'templates', `${templateName}.hbs`);
-  const template = await fs.readFile(templatePath, 'utf-8');
-  return handlebars.compile(template);
-};
+const transporter = createEmailTransport();
 
 /**
  * Send verification email
  */
-export const sendVerificationEmail = async (payload: { 
+export const sendVerificationEmail = async (payload: {
   to: string;
   userId: string;
   token: string;
@@ -67,10 +41,7 @@ export const sendVerificationEmail = async (payload: {
 /**
  * Send two-factor authentication code
  */
-export const sendTwoFactorEmail = async (payload: {
-  to: string;
-  code: string;
-}) => {
+export const sendTwoFactorEmail = async (payload: { to: string; code: string }) => {
   try {
     const template = await loadTemplate('two-factor');
     const html = template({
@@ -96,10 +67,7 @@ export const sendTwoFactorEmail = async (payload: {
 /**
  * Send password reset email
  */
-export const sendPasswordResetEmail = async (payload: {
-  to: string;
-  token: string;
-}) => {
+export const sendPasswordResetEmail = async (payload: { to: string; token: string }) => {
   try {
     const template = await loadTemplate('reset-password');
     const resetLink = `${process.env.CLIENT_URL}/auth/reset-password/${payload.token}`;
@@ -121,4 +89,4 @@ export const sendPasswordResetEmail = async (payload: {
     logger.error('Error sending password reset email:', error);
     throw new AppError('Failed to send password reset email', HTTP_STATUS.INTERNAL_SERVER_ERROR);
   }
-}; 
+};

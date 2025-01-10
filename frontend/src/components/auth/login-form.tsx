@@ -43,36 +43,36 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "admin@gmail.com",
-      password: "Admin1234*",
+      password: "Admin123*",
     },
   });
 
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: (response) => {
-      if (
-        response.status === "pending" &&
-        response?.message?.includes("Two-factor")
-      ) {
-        toast.info("Two-factor authentication code sent");
-        router.push("/auth/two-factor");
+      console.log("Login response:", response);
+
+      // Check if it's a two-factor auth response
+      if (response.status === "pending" && response.message) {
+        const { twoFactorToken, userId, type } = response.data;
+        toast.info(response.message || "Two-factor authentication code sent");
+        router.push(`/auth/two-factor?userId=${userId}&type=${type}`);
         return;
       }
 
-      if (!response.data) {
-        toast.error("Invalid response from server");
+      // At this point, we know it's a successful login response with user and tokens
+      if (response.status === "success" && response.data) {
+        const { user, session } = response.data;
+
+        toast.success("Login successful");
+        router.push("/dashboard");
         return;
       }
-
-      const { user, tokens } = response.data;
-      setUser(user);
-      setAccessToken(tokens.accessToken);
-      toast.success("Login successful");
-      router.push("/dashboard");
-      router.refresh();
     },
     onError: (error: any) => {
-      const errorMessage = error?.message || "Invalid email or password";
+      console.error(error);
+      const errorMessage =
+        error?.response?.data?.message || "Invalid email or password";
 
       if (errorMessage.includes("verify your email")) {
         toast.error("Please verify your email before logging in", {

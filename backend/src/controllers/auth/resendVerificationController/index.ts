@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
-import { resendVerification } from '@/services/auth.service';
+import { resendVerification } from './service';
 import { catchAsync } from '@/helpers/catchAsync';
-import { resendVerificationSchema } from '@/utils/validators/auth.validator';
+import { resendVerificationSchema } from './schema';
 import { HTTP_STATUS } from '@/constants';
-
-
 
 /**
  * @swagger
@@ -49,7 +47,7 @@ import { HTTP_STATUS } from '@/constants';
 export const resendVerificationController = catchAsync(async (req: Request, res: Response) => {
   // Validate request body
   const validatedData = resendVerificationSchema.parse(req);
-  
+
   // Resend verification email
   await resendVerification(validatedData.body);
 
@@ -58,4 +56,4 @@ export const resendVerificationController = catchAsync(async (req: Request, res:
     status: 'success',
     message: 'Verification email sent successfully',
   });
-}); 
+});

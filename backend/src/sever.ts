@@ -14,11 +14,14 @@ import router from '@/routes';
 const app: Express = express();
 
 // View engine setup
-app.engine('hbs', engine({
-  extname: '.hbs',
-  defaultLayout: 'main',
-  layoutsDir: path.join(__dirname, 'templates/layouts'),
-}));
+app.engine(
+  'hbs',
+  engine({
+    extname: '.hbs',
+    defaultLayout: 'main',
+    layoutsDir: path.join(__dirname, 'templates/layouts'),
+  }),
+);
 app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'templates'));
 
@@ -39,10 +42,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/v1', router);
 
 // Main page route
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.render('landing', {
     title: 'API Documentation',
-    description: 'Modern Authentication System API'
+    description: 'Modern Authentication System API',
   });
 });
 

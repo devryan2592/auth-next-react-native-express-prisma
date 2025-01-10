@@ -50,7 +50,7 @@ export const logout = catchAsync(async (req: Request, res: Response) => {
     where: { id: decoded.sessionId },
   });
 
-  res.status(HTTP_STATUS.OK).json({
+  return res.status(HTTP_STATUS.OK).json({
     status: 'success',
     message: 'Logged out successfully',
   });
@@ -93,7 +93,7 @@ export const logoutAll = catchAsync(async (req: Request, res: Response) => {
     where: { userId },
   });
 
-  res.status(HTTP_STATUS.OK).json({
+  return res.status(HTTP_STATUS.OK).json({
     status: 'success',
     message: 'Logged out from all sessions successfully',
   });
@@ -172,7 +172,7 @@ export const getSessions = catchAsync(async (req: Request, res: Response) => {
     },
   });
 
-  res.status(HTTP_STATUS.OK).json({
+  return res.status(HTTP_STATUS.OK).json({
     status: 'success',
     data: { sessions },
   });
@@ -223,7 +223,7 @@ export const logoutSession = catchAsync(async (req: Request, res: Response) => {
 
   // Verify the session belongs to the user
   const session = await prisma.session.findFirst({
-    where: { 
+    where: {
       id: sessionId,
       userId,
     },
@@ -238,8 +238,8 @@ export const logoutSession = catchAsync(async (req: Request, res: Response) => {
     where: { id: sessionId },
   });
 
-  res.status(HTTP_STATUS.OK).json({
+  return res.status(HTTP_STATUS.OK).json({
     status: 'success',
     message: 'Session terminated successfully',
   });
-}); 
+});

@@ -23,8 +23,6 @@ interface User {
   email: string;
   isVerified: boolean;
   isTwoFactorEnabled: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 interface RegisterResponse {
@@ -37,18 +35,30 @@ interface RegisterResponse {
   };
 }
 
-interface AuthResponse {
-  success: boolean;
-  data?: {
-    user: User;
-    tokens: {
+interface TwoFactorResponse {
+  status: "pending";
+  message: string;
+  data: {
+    twoFactorToken: string;
+    userId: string;
+    type: "LOGIN" | "PASSWORD_CHANGE";
+  };
+}
+
+interface SuccessResponse {
+  status: "success";
+  message: string;
+  data: {
+    session: {
+      id: string;
       accessToken: string;
       refreshToken: string;
     };
+    user: User;
   };
-  status?: "pending" | "success";
-  message?: string;
 }
+
+type AuthResponse = TwoFactorResponse | SuccessResponse;
 
 interface VerifyEmailResponse {
   success: boolean;
@@ -86,10 +96,8 @@ export const authService = {
         },
       }
     );
+    console.log("Login response:", response);
 
-    if (!response.data.success) {
-      throw new Error(response.data.message);
-    }
     return response.data;
   },
 
@@ -156,14 +164,28 @@ export const authService = {
     return response.data;
   },
 
-  verifyTwoFactor: async (otp: string): Promise<AuthResponse> => {
+  verifyTwoFactor: async (
+    code: string,
+    userId: string,
+    type: "LOGIN" | "PASSWORD_CHANGE"
+  ): Promise<AuthResponse> => {
     try {
-      const response = await axiosInstance.post("/auth/two-factor/verify", {
-        otp,
-      });
+      const response = await axiosInstance.post(
+        "/auth/2fa/verify",
+        {
+          code,
+          userId,
+          type,
+        },
+        {
+          withCredentials: true,
+        }
+      );
       return response.data;
     } catch (error) {
       throw handleAxiosError(error);
     }
   },
 };
+
+export type { AuthResponse, LoginInput, RegisterInput, User };
