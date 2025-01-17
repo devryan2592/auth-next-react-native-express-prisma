@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { requestPasswordReset } from '@/services/auth.service';
-import { requestPasswordResetSchema } from '@/utils/validators/auth.validator';
+import { requestPasswordReset } from './service';
+import { requestPasswordResetSchema } from './schema';
 import { catchAsync } from '@/helpers/catchAsync';
 import { HTTP_STATUS } from '@/constants';
 
@@ -42,11 +42,11 @@ import { HTTP_STATUS } from '@/constants';
 export const requestPasswordResetController = catchAsync(async (req: Request, res: Response) => {
   // Validate request body
   const validatedData = requestPasswordResetSchema.parse(req.body);
-  
+
   await requestPasswordReset(validatedData.email);
-  
+
   return res.status(HTTP_STATUS.OK).json({
     status: 'success',
-    message: 'If an account exists with that email, you will receive password reset instructions.'
+    message: 'If an account exists with that email, you will receive password reset instructions.',
   });
-}); 
+});

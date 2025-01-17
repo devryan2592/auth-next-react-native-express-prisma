@@ -3,14 +3,15 @@ import {
   registerController,
   verifyEmailController,
   resendVerificationController,
-  loginController,
+  handleLogin,
+  handleTwoFactorVerification,
   requestPasswordResetController,
   resetPasswordController,
   changePasswordController,
-  enable2FAController,
-  confirm2FAController,
-  disable2FAController,
-  verify2FAController,
+  // enable2FAController,
+  // confirm2FAController,
+  // disable2FAController,
+  // verify2FAController,
   logout,
   logoutAll,
   logoutSession,
@@ -25,8 +26,8 @@ const router = Router();
 router.post('/register', registerController);
 router.post('/verify-email/:userId/:token', verifyEmailController);
 router.post('/resend-verification', resendVerificationLimiter, resendVerificationController);
-router.post('/login', loginRateLimiter, loginController);
-router.post('/2fa/verify', verify2FAController);
+router.post('/login', loginRateLimiter, handleLogin);
+router.post('/2fa/verify', handleTwoFactorVerification);
 
 // Password management routes
 router.post('/request-password-reset', resendVerificationLimiter, requestPasswordResetController);
@@ -34,9 +35,9 @@ router.post('/reset-password', resetPasswordController);
 router.post('/change-password', requireAuth, changePasswordController);
 
 // Two-factor authentication routes
-router.post('/2fa/enable', requireAuth, enable2FAController);
-router.post('/2fa/confirm', requireAuth, confirm2FAController);
-router.post('/2fa/disable', requireAuth, disable2FAController);
+// router.post('/2fa/enable', requireAuth, enable2FAController);
+// router.post('/2fa/confirm', requireAuth, confirm2FAController);
+// router.post('/2fa/disable', requireAuth, disable2FAController);
 
 // Session management routes
 router.post('/logout', requireAuth, logout);

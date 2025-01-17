@@ -9,6 +9,11 @@ export interface LoginResponse {
   };
   session: {
     id: string;
+    ipAddress: string;
+    deviceType: string | null;
+    deviceName: string | null;
+    browser: string | null;
+    os: string | null;
     accessToken: string;
     refreshToken: string;
   };

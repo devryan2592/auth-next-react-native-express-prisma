@@ -21,16 +21,7 @@ import { useState } from "react";
 import Link from "next/link";
 import * as z from "zod";
 import { useAuthStore } from "@/lib/stores/auth";
-
-const loginSchema = z.object({
-  email: z
-    .string({ required_error: "Email is required" })
-    .email("Invalid email address")
-    .min(1, "Email is required"),
-  password: z
-    .string({ required_error: "Password is required" })
-    .min(1, "Password is required"),
-});
+import { loginSchema } from "../../lib/schemas/loginSchema";
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
@@ -70,7 +61,6 @@ export function LoginForm() {
       }
     },
     onError: (error: any) => {
-      console.error(error);
       const errorMessage =
         error?.response?.data?.message || "Invalid email or password";
 
@@ -100,7 +90,7 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="email"
@@ -125,8 +115,8 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel htmlFor="password">Password</FormLabel>
               <div className="flex items-center justify-between">
+              <FormLabel htmlFor="password">Password</FormLabel>
                 <Link
                   href="/auth/forgot-password"
                   className="text-xs text-muted-foreground hover:text-primary"

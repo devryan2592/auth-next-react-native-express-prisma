@@ -6,6 +6,7 @@ import { generateRandomCode } from '@/utils/generators/generateRandomCode';
 import { TwoFactorType } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { addMinutes } from 'date-fns';
+import { verifyCode } from '../twoFactorController/service';
 
 /**
  * Change user's password
@@ -71,7 +72,7 @@ export async function changePassword(
     }
 
     // Verify 2FA token
-    await verifyTwoFactorToken(userId, twoFactorCode, TwoFactorType.PASSWORD_CHANGE);
+    await verifyCode(userId, twoFactorCode, TwoFactorType.PASSWORD_CHANGE);
   }
 
   // Hash and update new password

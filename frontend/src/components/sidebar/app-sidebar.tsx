@@ -5,7 +5,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
@@ -15,7 +14,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarSeparator,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import React from "react";
 import { getMenuList } from "@/lib/menu-list";
@@ -67,7 +65,7 @@ const AppSidebar = () => {
   };
 
   return (
-    <Sidebar collapsible="icon" className="z-50">
+    <Sidebar collapsible="icon" className="z-50" aria-describedby="sidebar">
       <SidebarHeader>
         <SidebarMenu className="gap-2">
           <SidebarMenuItem>

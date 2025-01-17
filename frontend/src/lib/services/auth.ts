@@ -96,6 +96,7 @@ export const authService = {
         },
       }
     );
+
     console.log("Login response:", response);
 
     return response.data;
