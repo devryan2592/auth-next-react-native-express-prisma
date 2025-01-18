@@ -11,13 +11,24 @@ interface User {
   updatedAt: Date
 }
 
+interface Session {
+  id: string;
+  accessToken?: string;
+  refreshToken?: string;
+  ipAddress?: string;
+  deviceType?: string | null;
+  deviceName?: string | null;
+  browser?: string | null;
+  os?: string | null;
+}
+
 interface AuthState {
-  user: User | null
-  accessToken: string | null
-  isAuthenticated: boolean
-  setUser: (user: User | null) => void
-  setAccessToken: (token: string | null) => void
-  logout: () => void
+  user: User | null;
+  session: Session | null;
+  isAuthenticated: boolean;
+  setUser: (user: User | null) => void;
+  setSession: (session: Session | null) => void;
+  logout: () => void;
 }
 
 const cookieStorage = {
@@ -40,22 +51,22 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      accessToken: null,
+      session: null,
       isAuthenticated: false,
       setUser: (user) =>
         set((state) => ({
           user,
-          isAuthenticated: !!user && !!state.accessToken,
+          isAuthenticated: !!user && !!state.session,
         })),
-      setAccessToken: (token) =>
+      setSession: (session) =>
         set((state) => ({
-          accessToken: token,
-          isAuthenticated: !!token && !!state.user,
+          session,
+          isAuthenticated: !!session && !!state.user,
         })),
       logout: () =>
         set({
           user: null,
-          accessToken: null,
+          session: null,
           isAuthenticated: false,
         }),
     }),
@@ -64,7 +75,7 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => cookieStorage),
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
+        session: state.session,
         isAuthenticated: state.isAuthenticated,
       }),
     }

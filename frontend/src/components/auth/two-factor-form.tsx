@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -23,7 +22,7 @@ import {
 } from "@/components/ui/input-otp";
 
 import { authService } from "@/lib/services/auth";
-import { useAuthStore } from "@/lib/stores/auth";
+// import { useAuthStore } from "@/lib/stores/auth";
 import { useMutation } from "@tanstack/react-query";
 
 const formSchema = z.object({
@@ -33,22 +32,15 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export function TwoFactorForm() {
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const setUser = useAuthStore((state) => state.setUser);
-  const setAccessToken = useAuthStore((state) => state.setAccessToken);
+  // const setUser = useAuthStore((state) => state.setUser);
+  // const setAccessToken = useAuthStore((state) => state.setAccessToken);
 
   // Get params from URL
   const userId = searchParams.get("userId");
   const type = searchParams.get("type");
-
-  // Validate required params
-  if (!userId || !type) {
-    toast.error("Invalid verification request");
-    router.push("/auth/login");
-    return null;
-  }
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -61,21 +53,36 @@ export function TwoFactorForm() {
     mutationFn: (otp: string) =>
       authService.verifyTwoFactor(
         otp,
-        userId,
+        userId as string,
         type as "LOGIN" | "PASSWORD_CHANGE"
       ),
     onSuccess: (response) => {
-      if (response.status === "success" && response.data) {
-        const { user, session } = response.data;
-
-        toast.success("Two-factor authentication successful");
+      if ('user' in response && 'session' in response) {
+        // const { user, session } = response;
+        
+        // Update auth store
+        // setUser(user);
+        // setSession(session);
+        
+        toast.success("Login successful");
         router.push("/dashboard");
+        return;
       }
+
+      // This should never happen if types are correct
+      toast.error("Unexpected response format");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error?.message || "Failed to verify code");
     },
   });
+
+  // Validate required params
+  if (!userId || !type) {
+    toast.error("Invalid verification request");
+    router.push("/auth/login");
+    return null;
+  }
 
   async function onSubmit(data: FormData) {
     verifyTwoFactorMutation.mutate(data.otp);

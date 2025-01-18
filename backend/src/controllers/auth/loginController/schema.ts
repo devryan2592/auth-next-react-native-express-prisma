@@ -21,4 +21,4 @@ export const loginSchema = z.object({
 export type TwoFactorChangePasswordInput = z.infer<typeof twoFactorChangePasswordSchema>;
 
 export type LoginInput = z.infer<typeof loginSchema>['body'];
-export type TwoFactorLoginInput = z.infer<typeof twoFactorLoginSchema>['body'];
+export type TwoFactorLoginInput = z.infer<typeof twoFactorLoginSchema>

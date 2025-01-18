@@ -37,24 +37,23 @@ interface RegisterResponse {
 
 interface TwoFactorResponse {
   status: "pending";
-  message: string;
-  data: {
-    twoFactorToken: string;
-    userId: string;
-    type: "LOGIN" | "PASSWORD_CHANGE";
-  };
+  twoFactorToken: string;
+  userId: string;
+  type: "LOGIN" | "PASSWORD_CHANGE";
+  message?: string;
 }
 
 interface SuccessResponse {
-  status: "success";
-  message: string;
-  data: {
-    session: {
-      id: string;
-      accessToken: string;
-      refreshToken: string;
-    };
-    user: User;
+  user: User;
+  session: {
+    id: string;
+    accessToken?: string;
+    refreshToken?: string;
+    ipAddress?: string;
+    deviceType?: string | null;
+    deviceName?: string | null;
+    browser?: string | null;
+    os?: string | null;
   };
 }
 

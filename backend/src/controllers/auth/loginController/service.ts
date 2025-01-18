@@ -68,6 +68,10 @@ export async function initiate2FALogin(
 ): Promise<TwoFactorResponse> {
   const user = await validateCredentials(data.email, data.password);
 
+  if (!user) {
+    throw new AppError('User not found', HTTP_STATUS.NOT_FOUND);
+  }
+
   if (!user.isTwoFactorEnabled) {
     throw new AppError('2FA is not enabled for this account', HTTP_STATUS.BAD_REQUEST);
   }
@@ -116,14 +120,22 @@ export async function completeLoginWith2FA(
   userAgent: UAParser.IResult,
   existingRefreshToken?: string,
 ): Promise<LoginResponse> {
-  const user = await validateCredentials(data.email, data.password);
+
+  // Since we already validated the credentials, we can use the user object
+  const user = await prisma.user.findUnique({
+    where: { id: data.userId },
+  });
+
+  if (!user) {
+    throw new AppError('User not found', HTTP_STATUS.NOT_FOUND);
+  }
 
   // Verify 2FA code
   const twoFactorToken = await prisma.twoFactorToken.findFirst({
     where: {
       userId: user.id,
       code: data.twoFactorCode,
-      type: TwoFactorType.LOGIN,
+      type: data.type || TwoFactorType.LOGIN,
       used: false,
       expiresAt: {
         gt: new Date(),
@@ -164,6 +176,43 @@ export async function createAndSendTokens(
         refreshToken: {
           token: existingRefreshToken,
         },
+      },
+    });
+
+    if (existingSession) {
+      // Update existing session
+      session = await prisma.session.update({
+        where: { id: existingSession.id },
+        data: {
+          lastUsed: new Date(),
+          refreshToken: {
+            update: {
+              token: refreshToken,
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+            },
+          },
+        },
+        include: {
+          refreshToken: true,
+        },
+      });
+    }
+  } else {
+    // If no refresh token, check for existing session with same IP and device info
+    const existingSession = await prisma.session.findFirst({
+      where: {
+        userId,
+        ipAddress,
+        userAgent: userAgent.ua,
+        deviceType: userAgent.device.type || null,
+        browser: userAgent.browser.name || null,
+        os: userAgent.os.name || null,
+        expires: {
+          gt: new Date(), // Only consider non-expired sessions
+        },
+      },
+      orderBy: {
+        lastUsed: 'desc', // Get the most recently used session
       },
     });
 

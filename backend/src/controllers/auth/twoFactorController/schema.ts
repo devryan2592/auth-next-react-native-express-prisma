@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { changePasswordSchemaBase } from '../changePasswordController/schema';
-import { loginSchemaBase } from '../loginController/schema';
 
 export const twoFactorSchema = z.object({
   body: z.object({
@@ -14,11 +13,12 @@ export const twoFactorSchema = z.object({
 
 // Two-factor login schema
 export const twoFactorLoginSchema = z.object({
-  body: loginSchemaBase.extend({
+      userId: z.string({ required_error: 'User ID is required' }).uuid('Invalid user ID format'),
+    type: z.enum(['LOGIN', 'PASSWORD_CHANGE']).optional(),
     twoFactorCode: z
       .string({ required_error: '2FA code is required' })
       .length(6, '2FA code must be 6 characters'),
-  }),
+  
 });
 
 // Two Factor Change Password Schema

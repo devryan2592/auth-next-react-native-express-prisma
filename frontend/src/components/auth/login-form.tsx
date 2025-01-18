@@ -28,7 +28,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const { setUser, setAccessToken } = useAuthStore();
+  const { setUser, setSession } = useAuthStore();
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -41,28 +41,33 @@ export function LoginForm() {
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: (response) => {
-      console.log("Login response:", response);
-
       // Check if it's a two-factor auth response
-      if (response.status === "pending" && response.message) {
-        const { twoFactorToken, userId, type } = response.data;
+      if ('status' in response && response.status === 'pending') {
+        const { userId, type } = response;
         toast.info(response.message || "Two-factor authentication code sent");
         router.push(`/auth/two-factor?userId=${userId}&type=${type}`);
         return;
       }
 
-      // At this point, we know it's a successful login response with user and tokens
-      if (response.status === "success" && response.data) {
-        const { user, session } = response.data;
-
+      // Type guard for success response
+      if ('user' in response && 'session' in response) {
+        const { user, session } = response;
+        
+        // Update auth store
+        // setUser(user);
+        setSession(session);
+        
         toast.success("Login successful");
         router.push("/dashboard");
         return;
       }
+
+      // This should never happen if types are correct
+      toast.error("Unexpected response format");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       const errorMessage =
-        error?.response?.data?.message || "Invalid email or password";
+        error?.message || "Invalid email or password";
 
       if (errorMessage.includes("verify your email")) {
         toast.error("Please verify your email before logging in", {
@@ -170,7 +175,7 @@ export function LoginForm() {
         </Button>
         <div className="space-y-2">
           <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link
               href="/auth/register"
               className="font-medium text-primary hover:underline"
